@@ -52,6 +52,9 @@ env:
   init:
     demo-data: true
     demo-password: demo123
+  demo:
+    # 公开演示站打开：自带演示数据普通账号不能改删，不能改密码、管账号；每天凌晨备份数据库到 data/backup
+    protect: false
   simulator:
     auto-start: false
     rtd-interval-seconds: 10

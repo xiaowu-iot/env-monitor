@@ -4,6 +4,30 @@
 
 自带 HJ212 设备模拟器，没有硬件也能把"上报 → 预警 → 派单 → 通知 → 处理 → 审核"整个流程跑起来。
 
+## 在线体验
+
+演示站：<https://env.xiaowuiot.com>（完整版，模拟设备一直在上报数据）
+
+| 入口 | 地址 |
+|---|---|
+| 管理后台 | <https://env.xiaowuiot.com/> |
+| 手机端（处理人拍照提交） | <https://env.xiaowuiot.com/m/> |
+| 数据大屏（讲解员「小绿」） | <https://env.xiaowuiot.com/screen/> |
+
+体验账号，密码都是 `demo123`，登录页也可以一键登录：
+
+| 账号 | 角色 | 可以体验 |
+|---|---|---|
+| `chen` | 陈主管，审核员 | 派单、审核、停产报备、考核报表 |
+| `zhang` | 张工，处理人（城东） | 手机端接单、拍照提交 |
+| `liu` / `wang` | 刘工 / 王工，处理人（城西） | 同上 |
+| `ops` | 吴工，运维 | 站点、设备、因子管理，缺数补采，虚拟设备 |
+| `fleet` | 郑队长，车队调度 | 人员、车辆、派车、自动派车规则 |
+
+演示站的自带数据受保护：可以新建站点、设备、车辆等自己的数据随意改删，自带的演示数据不能修改和删除，也不能改密码。
+
+代码仓库：GitHub <https://github.com/xiaowu-iot/env-monitor> ，Gitee 镜像 <https://gitee.com/xiaowu-iot/env-monitor>
+
 ## 开源版和完整版
 
 这个仓库是开源基础版，拉下来就能跑通上面的完整流程。
@@ -137,6 +161,7 @@ java -jar env-simulator/target/env-simulator-0.1.0-SNAPSHOT-exec.jar --host 127.
 | `env.dingtalk.webhook` / `secret` | 内置模拟群 | 钉钉群机器人 |
 | `env.ai.provider` | mock | `mock` 规则模式，`openai` 接大模型 |
 | `env.init.demo-data` | true | 首次启动生成演示数据 |
+| `env.demo.protect` | false | 公开演示站打开：开启时已有的数据普通账号不能改删，不能改密码、管账号；每天凌晨备份数据库到 `data/backup` |
 | `env.data-dir` | ./data | 数据目录（H2 数据库、初始管理员密码） |
 
 ## 项目结构
@@ -167,14 +192,40 @@ mvn test
 - `env-hj212`：标准附录示例报文的 CRC、解析和组装、半包粘包、CRC 错误、长度错误
 - `FullFlowTest`：真实 TCP + HTTP 端到端：模拟器上报 → 超标预警 → 派给站点负责人 → 钉钉加签通知 → 越权被拒 → 提交 → 驳回 → 再提交 → 审核通过；没有负责人的站点手动派单
 - `AgentTest`：智能助手规则模式的常用问法，大模型模式的工具调用
+- `DemoGuardTest`：演示数据保护
 
-## 作者
+## 想系统学、做完整的平台？
 
-**小物学长**：10 年 Java、8 年物联网开发，从设备接入、IoT 平台到上层应用平台都做过，项目涉及物流仓管、智慧园区、智慧环卫。
+这个仓库是**基础版**：HJ212 接入、超标预警、派单审核、钉钉通知和模拟器，够你把整个流程跑通。
 
-- 公众号：小物学长
-- 知识星球：小物学长的物联网实战营 <https://t.zsxq.com/hldoY>
-- 其他开源项目：[iot-protocol-gateway](https://github.com/xiaowu-iot/iot-protocol-gateway)（JT/T 808、HJ212 设备接入网关）、[ai-inspection](https://github.com/xiaowu-iot/ai-inspection)（AI 安全巡检）
+[在线演示站](https://env.xiaowuiot.com)跑的是完整版。完整版源码、建表语句和系统讲解文档都在知识星球 **「小物学长的物联网实战营」** 里。我在星球的《项目实战 · 环境监测平台》专栏里，从项目骨架讲到部署上线，一共 20 讲：
+
+| 内容 | 仓库（基础版） | 实战营 |
+|---|:---:|:---:|
+| HJ212 编解码、TCP 接入、数据入库、设备模拟器 | ✅ | ✅ 逐步讲解 |
+| 超标预警、派单审核、钉钉通知、智能助手查询 | ✅ | ✅ 逐步讲解 |
+| HJ212 全部命令、反控、分包、超时重发、远程升级（OTA） | | ✅ |
+| 离线 / 恒值 / 突变 / 故障预警，分配规则、超时升级 | | ✅ |
+| 人车调度：雾炮车、洒水车派车，自动派车规则 | | ✅ |
+| 传输有效率考核、缺数补采、停产报备、日报月报 | | ✅ |
+| 数据大屏：乡镇地图、讲解员「小绿」语音讲解和对话操作 | | ✅ |
+| 手机端拍照提交、短信通知、手机号脱敏、物联网接入工具 | | ✅ |
+| MySQL 建表语句、部署方案、答疑 | | ✅ |
+
+👉 加入方式：[知识星球「小物学长的物联网实战营」](https://t.zsxq.com/hldoY)，或者关注公众号「**小物学长**」，回复【星球】。
+
+公众号回复【速查】可以领取《IoT 协议速查手册》PDF。
+
+<p align="center">
+  <img src=".github/assets/wechat-qrcode.jpg" width="215" alt="公众号「小物学长」二维码"><br>
+  微信扫码关注公众号「小物学长」
+</p>
+
+其他开源项目：[iot-protocol-gateway](https://github.com/xiaowu-iot/iot-protocol-gateway)（JT/T 808、HJ212 设备接入网关）、[ai-inspection](https://github.com/xiaowu-iot/ai-inspection)（AI 安全巡检）
+
+## 参与贡献
+
+欢迎提交 Issue 和 PR。如果你手上有真实数采仪的报文样例（请脱敏后再提交），对完善协议兼容性帮助很大。
 
 ## 许可证
 

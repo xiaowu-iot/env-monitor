@@ -94,7 +94,7 @@ class AgentTest {
     @Test
     void llmModeCallsToolsByPermission() {
         EnvProperties.Ai ai = new EnvProperties.Ai("openai", "http://127.0.0.1:18199/v1", "test", "fake", 30);
-        EnvProperties props = new EnvProperties(null, null, ai, null, null, null, "./data");
+        EnvProperties props = new EnvProperties(null, null, ai, null, null, null, null, "./data");
         AgentService llmAgent = new AgentService(tools, planner, new LlmClient(props, restClient));
         REQUESTS.clear();
         AgentService.Reply r = llmAgent.chat(users.findByUsername("zhang").orElseThrow(), "哪些设备离线了");

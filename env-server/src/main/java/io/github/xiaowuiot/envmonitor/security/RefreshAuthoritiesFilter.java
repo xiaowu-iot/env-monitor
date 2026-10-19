@@ -28,7 +28,7 @@ public class RefreshAuthoritiesFilter extends OncePerRequestFilter {
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        return !request.getRequestURI().startsWith("/api/");
+        return !request.getRequestURI().startsWith(request.getContextPath() + "/api/");
     }
 
     @Override

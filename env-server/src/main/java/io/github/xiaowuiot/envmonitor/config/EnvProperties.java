@@ -14,6 +14,7 @@ public record EnvProperties(
         @DefaultValue Dingtalk dingtalk,
         @DefaultValue Init init,
         @DefaultValue Simulator simulator,
+        @DefaultValue Demo demo,
         @DefaultValue("./data") String dataDir) {
 
     /**
@@ -66,6 +67,21 @@ public record EnvProperties(
     public record Init(String adminPassword,
                        @DefaultValue("true") boolean demoData,
                        @DefaultValue("demo123") String demoPassword) {
+    }
+
+    /**
+     * 公开演示站的数据保护。打开后，除 admins 以外的账号：
+     * 不能修改、删除开启保护时已有的站点、设备、预警规则、账号（自己新建的可以随便改删）；
+     * 不能改密码，不能管账号，不能清空钉钉模拟消息，不能操作内置模拟器。
+     * 第一次开启时和之后每天凌晨把数据库备份到 data/backup（只支持 H2 文件库）。
+     *
+     * @param protect    打开保护，公开演示站用
+     * @param admins     不受限制的账号
+     * @param backupKeep 保留最近几份备份，0 表示不备份
+     */
+    public record Demo(@DefaultValue("false") boolean protect,
+                       @DefaultValue("admin") java.util.List<String> admins,
+                       @DefaultValue("7") int backupKeep) {
     }
 
     /**

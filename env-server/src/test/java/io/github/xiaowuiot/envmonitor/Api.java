@@ -41,6 +41,10 @@ class Api {
         return send(HttpRequest.newBuilder(URI.create(base + path)).GET());
     }
 
+    Resp delete(String path) {
+        return send(HttpRequest.newBuilder(URI.create(base + path)).DELETE());
+    }
+
     Resp post(String path, String json) {
         return send(HttpRequest.newBuilder(URI.create(base + path)).header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(json)));
