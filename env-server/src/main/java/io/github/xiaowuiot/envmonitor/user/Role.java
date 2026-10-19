@@ -16,6 +16,9 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.Table;
 
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
 @Entity
 @Table(name = "sys_role")
 public class Role {
@@ -36,6 +39,7 @@ public class Role {
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "sys_role_permission", joinColumns = @JoinColumn(name = "role_id"))
     @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
     @Column(name = "permission", length = 32)
     private Set<Permission> permissions = new LinkedHashSet<>();
 

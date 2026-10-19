@@ -19,31 +19,68 @@
   const Dashboard = {
     setup() {
       const d = ref(null);
-      const load = async () => { try { d.value = await api('/dashboard'); } catch (e) { fail(e); } };
+      const sites = ref([]);
+      const load = async () => {
+        try { d.value = await api('/dashboard'); } catch (e) { fail(e); }
+        if (has('DEVICE_VIEW')) sites.value = await api('/sites').catch(() => []);
+      };
       useTimer(load, 15000);
-      const maxTrend = computed(() => d.value ? Math.max(1, ...d.value.trend.map(t => t.count)) : 1);
+      // 面积趋势图：坐标在 600×190 的画布里算好
+      const chart = computed(() => {
+        if (!d.value || !d.value.trend.length) return null;
+        const t = d.value.trend, W = 600, H = 190, L = 20, R = 20, T = 24, B = 28;
+        const max = Math.max(4, ...t.map(x => x.count));
+        const step = (W - L - R) / Math.max(1, t.length - 1);
+        const pts = t.map((x, i) => ({ x: L + i * step, y: T + (H - T - B) * (1 - x.count / max), n: x.count, lbl: x.date }));
+        const line = pts.map((p, i) => (i ? 'L' : 'M') + p.x.toFixed(1) + ' ' + p.y.toFixed(1)).join(' ');
+        const area = line + ' L' + pts[pts.length - 1].x.toFixed(1) + ' ' + (H - B) + ' L' + pts[0].x.toFixed(1) + ' ' + (H - B) + ' Z';
+        const grid = [0, 1, 2, 3].map(i => T + (H - T - B) * i / 3);
+        return { pts, line, area, grid, W, H };
+      });
+      // 站点状态：有未关闭预警的排前面
+      const siteRows = computed(() => {
+        const open = {};
+        ((d.value && d.value.recentAlarms) || []).forEach(a => { open[a.siteName] = (open[a.siteName] || 0) + 1; });
+        return sites.value.map(s => ({ ...s, open: open[s.name] || 0 }))
+          .sort((a, b) => b.open - a.open || (a.onlineCount - a.deviceCount) - (b.onlineCount - b.deviceCount)).slice(0, 6);
+      });
+      const rate = computed(() => d.value && d.value.summary.deviceTotal ? Math.round(d.value.summary.deviceOnline * 100 / d.value.summary.deviceTotal) : 0);
       const openOrder = id => { if (id) state.orderId = id; };
-      return { d, maxTrend, openOrder, short, LEVEL_CLASS, STATUS_TYPE, state };
+      return { d, chart, siteRows, rate, openOrder, short, LEVEL_CLASS, STATUS_TYPE, state, has };
     },
     template: `<div v-if="d">
       <div class="kpis">
-        <div class="kpi ok"><div class="bar"></div><div class="k">设备在线</div><div class="v">{{ d.summary.deviceOnline }}<small>/ {{ d.summary.deviceTotal }} 台</small></div><div class="d">在线率 {{ d.summary.deviceTotal ? Math.round(d.summary.deviceOnline*100/d.summary.deviceTotal) : 0 }}%</div></div>
-        <div class="kpi warn"><div class="bar"></div><div class="k">今日预警</div><div class="v">{{ d.summary.alarmTotal }}<small>条</small></div><div class="d">工单新建 {{ d.summary.ordersCreated }}，办结 {{ d.summary.ordersClosed }}</div></div>
-        <div class="kpi danger"><div class="bar"></div><div class="k">未关闭预警</div><div class="v">{{ d.summary.openAlarms }}<small>条</small></div><div class="d">待派单 {{ d.summary.pendingDispatch }}</div></div>
-        <div class="kpi"><div class="bar"></div><div class="k">我的工作</div><div class="v">{{ d.myTodo }}<small>待办</small> {{ d.myReview }}<small>待审核</small></div><div class="d"><a href="#/orders">去处理 ›</a></div></div>
+        <div class="kpi"><div class="kico"><icon name="online" :size="22" /></div><div><div class="k">设备在线</div><div class="v">{{ d.summary.deviceOnline }}<small>/ {{ d.summary.deviceTotal }} 台</small></div><div class="d">在线率 {{ rate }}%</div></div></div>
+        <div class="kpi warn"><div class="kico"><icon name="alarm" :size="22" /></div><div><div class="k">今日预警</div><div class="v">{{ d.summary.alarmTotal }}<small>条</small></div><div class="d">工单新建 {{ d.summary.ordersCreated }}，办结 {{ d.summary.ordersClosed }}</div></div></div>
+        <div class="kpi danger"><div class="kico"><icon name="water" :size="22" /></div><div><div class="k">未关闭预警</div><div class="v">{{ d.summary.openAlarms }}<small>条</small></div><div class="d">待派单 {{ d.summary.pendingDispatch }}</div></div></div>
+        <div class="kpi aqua"><div class="kico"><icon name="order" :size="22" /></div><div><div class="k">我的工作</div><div class="v">{{ d.myTodo }}<small>待办</small>{{ d.myReview }}<small>待审核</small></div><div class="d"><a href="#/orders">去处理 ›</a></div></div></div>
       </div>
       <div class="grid2">
-        <div class="panel"><div class="panel-title">最近 7 天预警</div>
-          <div class="bars"><div v-for="t in d.trend" :key="t.date" class="col"><div class="b" :style="{height: (t.count*100/maxTrend) + '%'}"><span>{{ t.count }}</span></div><em>{{ t.date }}</em></div></div>
-        </div>
-        <div class="panel"><div class="panel-title">今日预警最多的站点</div>
-          <div class="dist" v-if="d.summary.topSites.length">
-            <div class="row" v-for="e in d.summary.topSites" :key="Object.keys(e)[0]"><span class="n">{{ Object.keys(e)[0] }}</span><span class="c">{{ Object.values(e)[0] }} 条</span></div>
+        <div class="panel"><div class="panel-title">最近 7 天预警趋势<small>按天统计</small></div>
+          <div class="trend" v-if="chart">
+            <svg :viewBox="'0 0 ' + chart.W + ' ' + chart.H" preserveAspectRatio="none">
+              <defs><linearGradient id="trendFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0e9f6e" stop-opacity=".32"/><stop offset="1" stop-color="#0891b2" stop-opacity="0"/></linearGradient></defs>
+              <line v-for="(g,i) in chart.grid" :key="i" x1="0" :x2="chart.W" :y1="g" :y2="g" stroke="#edf2f0" />
+              <path class="area" :d="chart.area" /><path class="ln" :d="chart.line" />
+              <template v-for="p in chart.pts" :key="p.lbl"><circle class="pt" :cx="p.x" :cy="p.y" r="3.5" /><text class="num" :x="p.x" :y="p.y - 9" text-anchor="middle">{{ p.n }}</text><text class="lbl" :x="p.x" :y="chart.H - 8" text-anchor="middle">{{ p.lbl }}</text></template>
+            </svg>
           </div>
-          <div v-else class="empty">今天还没有预警</div>
+        </div>
+        <div class="panel"><div class="panel-title">站点运行状态<a v-if="has('DEVICE_VIEW')" href="#/sites" class="more">全部站点 ›</a></div>
+          <div class="sites" v-if="siteRows.length">
+            <div v-for="s in siteRows" :key="s.id" class="site-row" :class="{ alarm: s.open }">
+              <div class="sico"><icon :name="s.open ? 'alarm' : 'site'" :size="18" /></div>
+              <div><b>{{ s.name }}</b><div class="muted">设备 {{ s.onlineCount }}/{{ s.deviceCount }} 在线</div></div>
+              <span v-if="s.open" class="st red">{{ s.open }} 条预警</span>
+              <span v-else-if="s.onlineCount < s.deviceCount" class="st muted">有设备离线</span>
+              <span v-else class="st good">运行正常</span>
+            </div>
+          </div>
+          <div v-else class="empty">暂无站点</div>
+          <div class="muted mt" v-if="d.summary.topSites.length">今日预警最多：<span v-for="e in d.summary.topSites" :key="Object.keys(e)[0]">{{ Object.keys(e)[0] }}（{{ Object.values(e)[0] }}） </span></div>
         </div>
       </div>
-      <div class="panel"><div class="panel-title">未关闭的预警</div>
+      <div class="panel"><div class="panel-title">未关闭的预警<a href="#/alarms" class="more">预警列表 ›</a></div>
         <el-table :data="d.recentAlarms" size="small" @row-click="r => openOrder(r.orderId)" row-class-name="clickable">
           <el-table-column label="级别" width="70"><template #default="{row}"><span :class="'lv ' + LEVEL_CLASS[row.level]">{{ row.levelText }}</span></template></el-table-column>
           <el-table-column prop="siteName" label="站点" width="200" />
