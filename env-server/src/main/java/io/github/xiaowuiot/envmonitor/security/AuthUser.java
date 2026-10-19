@@ -10,7 +10,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import io.github.xiaowuiot.envmonitor.user.User;
 
 /**
- * 登录态里保存的用户信息。权限在登录时算好；后台改了角色权限，用户重新登录后生效。
+ * 登录态里保存的用户信息。权限在登录时算好，之后每次请求由 RefreshAuthoritiesFilter 按数据库里的最新角色刷新。
  */
 public class AuthUser implements UserDetails {
 
