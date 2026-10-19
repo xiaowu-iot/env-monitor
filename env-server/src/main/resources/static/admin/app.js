@@ -73,13 +73,15 @@
     { k: 'alarm-rules', t: '预警规则', ic: 'rule', g: '系统配置', c: Pages.AlarmRules, p: 'ALARM_VIEW' },
     { k: 'notify', t: '钉钉通知', ic: 'bell', g: '系统配置', c: Pages.Notify, p: 'SYSTEM_ADMIN' },
     { k: 'users', t: '用户管理', ic: 'user', g: '系统配置', c: Pages.Users, p: 'SYSTEM_ADMIN' },
+    { k: 'logins', t: '登录记录', ic: 'login', g: '系统配置', c: Pages.Logins },
+    { k: 'operations', t: '操作记录', ic: 'log', g: '系统配置', c: Pages.Operations },
   ];
 
   const GROUPS = {
     '综合监控': { ic: 'monitor', d: '站点运行与监测数据' },
     '预警处置': { ic: 'alarm', d: '预警、工单与消息' },
     '设备运维': { ic: 'device', d: '设备接入与模拟调试' },
-    '系统配置': { ic: 'gear', d: '预警规则、通知与用户' },
+    '系统配置': { ic: 'gear', d: '预警规则、通知、用户与操作记录' },
   };
 
   const App = {

@@ -106,7 +106,8 @@
         dlg.show = true;
       }
       async function save() { try { await api('/users' + (dlg.id ? '/' + dlg.id : ''), { method: dlg.id ? 'PUT' : 'POST', body: dlg.f }); ok(); dlg.show = false; load(); } catch (e) { fail(e); } }
-      return { list, roles, dlg, edit, save };
+      const go = (page, u) => { location.hash = '/' + page + '?userId=' + u.id; };
+      return { list, roles, dlg, edit, save, go };
     },
     template: `<div class="panel">
       <div class="toolbar"><el-button type="primary" @click="edit()">新增用户</el-button><span class="muted">内置三个角色：系统管理员、审核员、处理人。手机号用于钉钉 @ 提醒</span></div>
@@ -114,7 +115,7 @@
         <el-table-column prop="username" label="用户名" width="120" /><el-table-column prop="name" label="姓名" width="100" /><el-table-column prop="phone" label="手机" width="130" />
         <el-table-column label="角色" min-width="160"><template #default="{row}"><el-tag v-for="r in row.roleNames" :key="r" size="small" style="margin:1px">{{ r }}</el-tag></template></el-table-column>
         <el-table-column label="状态" width="70"><template #default="{row}"><el-tag size="small" :type="row.enabled ? 'success' : 'info'">{{ row.enabled ? '正常' : '停用' }}</el-tag></template></el-table-column>
-        <el-table-column label="操作" width="70"><template #default="{row}"><el-button link type="primary" @click="edit(row)">编辑</el-button></template></el-table-column>
+        <el-table-column label="操作" width="170"><template #default="{row}"><el-button link type="primary" @click="edit(row)">编辑</el-button><el-button link type="primary" @click="go('logins', row)">登录记录</el-button><el-button link type="primary" @click="go('operations', row)">操作记录</el-button></template></el-table-column>
       </el-table>
       <el-dialog v-model="dlg.show" :title="dlg.id ? '编辑用户' : '新增用户'" width="480px">
         <el-form label-width="70px">
