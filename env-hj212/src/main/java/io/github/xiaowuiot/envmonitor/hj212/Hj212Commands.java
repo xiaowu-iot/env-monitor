@@ -1,22 +1,22 @@
 package io.github.xiaowuiot.envmonitor.hj212;
 
 /**
- * HJ212-2017 的命令编码（CN）和交互结果。
+ * HJ212-2017 的命令编码（CN）和交互结果，出自标准 6.6.5 表 9《命令编码表》。
  * <pre>
  * 类别       CN            含义
  * 初始化     1000          设置超时时间及重发次数
  * 参数       1011 / 1012   提取 / 设置现场机时间
- *           1013          现场机时间校准请求（现场机 → 上位机）
+ *           1013          现场机时间校准请求（通知命令，现场机 → 上位机，上位机回 9013 后下发 1012，见表 C.4）
  *           1061 / 1062   提取 / 设置实时数据间隔
  *           1063 / 1064   提取 / 设置分钟数据间隔
- *           1072          设置现场机访问密码
- * 数据       2011 / 2012   实时数据 / 停止察看实时数据
- *           2021 / 2022   设备运行状态 / 停止察看
+ *           1072          设置现场机访问密码（表 9 写作"设置现场机密码"，表 C.9 写作"设置现场机访问密码"）
+ * 数据       2011 / 2012   取实时数据 / 停止察看实时数据（2012 是通知命令，现场机回 9013）
+ *           2021 / 2022   取设备运行状态 / 停止察看（2022 是通知命令，现场机回 9013）
  *           2031          日历史数据
  *           2041          设备运行时间日历史数据
  *           2051 / 2061   分钟数据 / 小时数据
- *           2081          数采仪开机时间
- * 控制       3011          零点校准、量程校准
+ *           2081          上传数采仪开机时间（只有上传命令，现场机 → 上位机）
+ * 控制       3011          零点校准量程校准
  *           3012          即时采样
  *           3013          启动清洗 / 反吹
  *           3014          比对采样
@@ -24,13 +24,14 @@ package io.github.xiaowuiot.envmonitor.hj212;
  *           3016 / 3017   设置 / 提取采样时间周期
  *           3018          提取出样时间
  *           3019          提取设备唯一标识
- *           3020 / 3021   提取 / 设置现场机信息
+ *           3020          提取现场机信息
+ *           3021          设置现场机参数
  * 交互       9011          请求应答
  *           9012          执行结果
  *           9013          通知应答
  *           9014          数据应答
  * </pre>
- * 具体每条命令 CP 里带哪些字段，以标准原文为准。
+ * 每条命令 CP 里带哪些字段见标准附录 C 的命令示例。
  */
 public final class Hj212Commands {
 
@@ -72,7 +73,7 @@ public final class Hj212Commands {
     public static final String DATA_ACK = "9014";
 
 
-    // ===== 请求应答 QnRtn =====
+    // ===== 请求应答 QnRtn，标准 6.6.3 表 7《请求命令返回表》 =====
     public static final int QN_READY = 1;
     public static final int QN_REJECTED = 2;
     public static final int QN_BAD_PW = 3;
@@ -84,7 +85,7 @@ public final class Hj212Commands {
     public static final int QN_BAD_CRC = 9;
     public static final int QN_UNKNOWN = 100;
 
-    // ===== 执行结果 ExeRtn =====
+    // ===== 执行结果 ExeRtn，标准 6.6.2 表 6《执行结果定义表》 =====
     public static final int EXE_SUCCESS = 1;
     public static final int EXE_FAILED = 2;
     public static final int EXE_BAD_CONDITION = 3;
@@ -142,13 +143,14 @@ public final class Hj212Commands {
         }
     }
 
-    // ===== 数据标记 xxx-Flag =====
+    // ===== 数据标记 xxx-Flag，标准 6.6.4 表 8《数据标记表》 =====
 
     /**
-     * 数据标记：N 正常、F 停运、M 维护、S 手工输入、D 故障、C 校准、T 超限、B 通讯异常。
+     * 数据标记（表 8）：N 仪器工作正常、F 仪器停运、M 仪器处于维护期间产生的数据、S 手工输入的设定值、
+     * D 仪器故障、C 仪器处于校准状态、T 仪器采样数值超过测量上限、B 仪器与数采仪通讯异常。
      * <p>
-     * 停运、维护、故障、校准、通讯异常时的数据不是真实排放，<b>不能参与均值计算和超标判断</b>；
-     * 超限（T）是仪器正常、但数值超出了量程或限值，数据本身有效。
+     * 哪些标记的数据算有效，标准里没有规定，下面是本平台的处理规则：停运、维护、故障、校准、通讯异常时的数据
+     * 不是真实排放，<b>不参与超标判断</b>；超测量上限（T）说明实际值比读数还高，照常参与判断。
      */
     public static boolean isValidFlag(String flag) {
         return flag == null || "N".equals(flag) || "T".equals(flag) || "S".equals(flag);
@@ -172,7 +174,7 @@ public final class Hj212Commands {
             case "C":
                 return "校准";
             case "T":
-                return "超限";
+                return "超测量上限";
             case "B":
                 return "通讯异常";
             default:

@@ -3,6 +3,7 @@
   const { reactive, ref, onMounted, onUnmounted } = Vue;
   const { api, fail, ok, fmt, short, has, qs, useTimer, ElMessageBox } = EM;
 
+  // 系统编码 ST，取自 HJ212-2017 6.6.1 表 5《系统编码表》
   const ST_OPTIONS = [
     { v: '32', l: '32 地表水体环境污染源' }, { v: '31', l: '31 大气环境污染源' }, { v: '21', l: '21 地表水质量监测' },
     { v: '22', l: '22 空气质量监测' }, { v: '23', l: '23 声环境质量监测' }, { v: '24', l: '24 地下水质量监测' },

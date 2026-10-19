@@ -59,7 +59,7 @@ public class MonitorData {
     /** 折算值 ZsRtd / ZsAvg（废气） */
     private Double zsVal;
 
-    /** 数据标记 N 正常、F 停运、M 维护、S 手工、D 故障、C 校准、T 超限、B 通讯异常 */
+    /** 数据标记（HJ212-2017 表 8）N 正常、F 停运、M 维护、S 手工输入、D 故障、C 校准、T 超测量上限、B 通讯异常 */
     @Column(length = 4)
     private String flag;
 
