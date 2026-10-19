@@ -94,6 +94,18 @@ env:
     model: deepseek-chat
 ```
 
+常用的几家（都是 OpenAI 兼容接口，key 在各家开放平台申请）：
+
+| 模型 | base-url | model |
+|---|---|---|
+| DeepSeek | `https://api.deepseek.com/v1` | `deepseek-chat` |
+| 通义千问 | `https://dashscope.aliyuncs.com/compatible-mode/v1` | `qwen-plus` |
+| Kimi | `https://api.moonshot.cn/v1` | `moonshot-v1-8k` |
+| 智谱 | `https://open.bigmodel.cn/api/paas/v4` | `glm-4-flash` |
+| 本地 Ollama | `http://127.0.0.1:11434/v1` | 本地拉取的模型名 |
+
+没配 key 时智能助手是规则模式，只回答常用问法，聊天窗口里会提示怎么配置。
+
 智能助手按当前登录用户的权限调用查询工具，不会编造数据。
 
 ## 命令行模拟器

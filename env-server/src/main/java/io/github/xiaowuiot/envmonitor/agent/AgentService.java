@@ -32,6 +32,11 @@ import io.github.xiaowuiot.envmonitor.user.User;
 public class AgentService {
 
     private static final Logger log = LoggerFactory.getLogger(AgentService.class);
+
+    /** 没配大模型时的提醒：下载代码直接运行的人一般还没有 key */
+    public static final String NO_KEY_HINT = "现在还没有接入 AI 大模型，只能回答上面这些常用问法。想自由对话，在配置文件 config/application.yml 里填上大模型的 key 后重启即可，"
+            + "支持 DeepSeek、通义千问、Kimi、智谱等 OpenAI 兼容接口，例如：env.ai.provider=openai、env.ai.base-url=https://api.deepseek.com/v1、"
+            + "env.ai.api-key=你的 API Key、env.ai.model=deepseek-chat。";
     private static final ObjectMapper JSON = new ObjectMapper().findAndRegisterModules();
     private static final int MAX_HISTORY = 16;
     private static final int MAX_ROUNDS = 6;
@@ -89,7 +94,7 @@ public class AgentService {
         RulePlanner.Call call = planner.plan(msg);
         if (call == null) {
             return "这个问题我还没理解。规则模式下可以这样问：\n\n- " + String.join("\n- ", RulePlanner.EXAMPLES)
-                    + "\n\n接入大模型后可以用更自由的说法提问。";
+                    + "\n\n" + NO_KEY_HINT;
         }
         if ("help".equals(call.tool())) {
             return "我可以帮你查运行情况、预警、设备、实时和历史数据、待办工单。比如：\n\n- " + String.join("\n- ", RulePlanner.EXAMPLES);

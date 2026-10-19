@@ -28,7 +28,7 @@ public class AgentController {
     @GetMapping("/info")
     public Map<String, Object> info() {
         current.get();
-        return Map.of("mode", agent.mode(), "examples", RulePlanner.EXAMPLES);
+        return Map.of("mode", agent.mode(), "examples", RulePlanner.EXAMPLES, "noKeyHint", AgentService.NO_KEY_HINT);
     }
 
     @PostMapping("/chat")

@@ -253,6 +253,7 @@ truck: 'M2 6h11v10H2zM13 9h4.5l3.5 3.5V16h-8M6 19.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 
     template: `<el-drawer v-model="visible" size="520px" :with-header="false" class="agent-drawer">
       <div class="agent">
         <div class="agent-head"><b>智能助手</b><span class="muted" v-if="info">{{ info.mode === 'llm' ? '大模型模式' : '规则模式（未接入大模型）' }}</span><span class="grow"></span><el-button link @click="reset">清空对话</el-button><el-button link @click="visible=false">关闭</el-button></div>
+        <div v-if="info && info.mode !== 'llm'" class="agent-hint">{{ info.noKeyHint }}</div>
         <div class="agent-body" ref="box">
           <div v-for="(m,i) in msgs" :key="i" :class="'msg ' + m.role">
             <div class="bubble"><div class="md" v-html="md(m.text)"></div>
