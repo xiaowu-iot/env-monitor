@@ -159,7 +159,7 @@ public class AgentService {
     private String systemPrompt(User user) {
         String roles = user.getRoles().stream().map(Role::getName).collect(Collectors.joining("、"));
         return """
-                你是环境监测平台的智能助手，帮用户查询平台里的数据。平台按 HJ212-2017 接收在线监测数据，
+                你是环境监测平台的智能助手，帮用户查询平台里的数据。平台按 HJ212-2017 / HJ212-2025 接收在线监测数据，
                 有设备、实时和历史数据、超标预警、工单（派单 → 处理 → 审核）等功能。
 
                 当前用户：%s（角色：%s）。现在时间：%s。

@@ -39,9 +39,12 @@ public class Hj212Server implements SmartLifecycle {
     private Channel serverChannel;
     private volatile boolean running;
 
-    public Hj212Server(EnvProperties props, IngestService ingest) {
+    private final io.github.xiaowuiot.envmonitor.device.SecretKeyService keys;
+
+    public Hj212Server(EnvProperties props, IngestService ingest, io.github.xiaowuiot.envmonitor.device.SecretKeyService keys) {
         this.props = props;
         this.ingest = ingest;
+        this.keys = keys;
     }
 
     @Override
@@ -63,7 +66,8 @@ public class Hj212Server implements SmartLifecycle {
                     protected void initChannel(SocketChannel ch) {
                         // 超过离线时间没有任何数据就断开，设备会自己重连
                         ch.pipeline().addLast(new IdleStateHandler(idle, 0, 0, TimeUnit.SECONDS));
-                        Hj212Encoder.addCodec(ch.pipeline());
+                        // 2025 版加密报文按 MN 找这台设备的密钥解密
+                        Hj212Encoder.addCodec(ch.pipeline(), keys);
                         ch.pipeline().addLast(handler);
                     }
                 });

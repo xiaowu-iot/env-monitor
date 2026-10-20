@@ -54,6 +54,12 @@ public class DataService {
             d.setCou(num(fields.get("Cou")));
             d.setZsVal(num(fields.containsKey("ZsRtd") ? fields.get("ZsRtd") : fields.get("ZsAvg")));
             d.setFlag(fields.get("Flag"));
+            d.setEflag(fields.get("EFlag"));
+            d.setRefill(p.isRefill());
+            // 噪声（2025 版表 C.33 ~ C.35）：L5-Data、Leq-Data 是时段内的值，记到平均值上
+            if (d.getAvgVal() == null && d.getRtd() == null) {
+                d.setAvgVal(num(fields.get("Data")));
+            }
             Double rs = num(fields.get("RS"));
             d.setRs(rs == null ? null : rs.intValue());
             d.setRt(num(fields.get("RT")));

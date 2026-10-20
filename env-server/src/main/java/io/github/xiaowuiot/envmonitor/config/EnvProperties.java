@@ -21,12 +21,14 @@ public record EnvProperties(
      * @param port             TCP 监听端口
      * @param ackData          收到要求应答的数据时回 9014
      * @param rawRetentionDays 原始报文保留天数
+     * @param keySecret        2025 版通信密钥在库里加密保存用的平台主密钥（16 个字符）。不填就在 data 目录生成 hj212-master.key
      */
     public record Hj212(
             @DefaultValue("true") boolean enabled,
             @DefaultValue("9212") int port,
             @DefaultValue("true") boolean ackData,
-            @DefaultValue("7") int rawRetentionDays) {
+            @DefaultValue("7") int rawRetentionDays,
+            String keySecret) {
     }
 
     /**

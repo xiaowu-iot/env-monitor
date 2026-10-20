@@ -32,13 +32,32 @@ package io.github.xiaowuiot.envmonitor.hj212;
  *           9014          数据应答
  * </pre>
  * 每条命令 CP 里带哪些字段见标准附录 C 的命令示例。
+ * <p>
+ * <b>HJ212-2025</b>（2026-01-01 实施）在 6.7.5 表 12 里新增了这些命令：
+ * <pre>
+ *           1001          上传数采仪硬件序号（通知，现场机 → 上位机，没激活时 MN 为空，上位机回 9013 后下发 1002）
+ *           1002          设置数采仪 MN 编码（上位机按硬件指纹给数采仪赋 MN）
+ *           1014          现场机获取新密钥（现场机 → 上位机，上位机回 9013）/ 上位机下发新密钥（请求命令），都要加密
+ *           2013          原始监测数据（周期性监测，比如废水混合样、VOCs）
+ *           2052          噪声单次测量数据（20 分钟一个时段，见 HJ 1402）
+ *           2062          自动标样核查（校准）数据
+ *           2111          上传炉膛温度 5 分钟均值（垃圾焚烧）
+ *           3015          改成"上传留样信息"（现场机 → 上位机），2017 版是上位机下发"超标留样"
+ *           3022          下发即时留样任务
+ *           3024          启动标样核查
+ *           9015          心跳包（现场机发，上位机回 9013）
+ * </pre>
+ * 2025 版表 12 里不再有 3014 比对采样、3016 / 3017 采样时间周期，接 2017 版设备时照常可用。
  */
 public final class Hj212Commands {
 
     public static final String SET_TIMEOUT = "1000";
+    public static final String HARDWARE_SN = "1001";
+    public static final String SET_MN = "1002";
     public static final String GET_TIME = "1011";
     public static final String SET_TIME = "1012";
     public static final String TIME_CALIBRATION_REQ = "1013";
+    public static final String SECRET_KEY = "1014";
     public static final String GET_RTD_INTERVAL = "1061";
     public static final String SET_RTD_INTERVAL = "1062";
     public static final String GET_MIN_INTERVAL = "1063";
@@ -47,18 +66,25 @@ public final class Hj212Commands {
 
     public static final String REALTIME = "2011";
     public static final String STOP_REALTIME = "2012";
+    public static final String RAW_DATA = "2013";
     public static final String RUN_STATUS = "2021";
     public static final String STOP_RUN_STATUS = "2022";
     public static final String DAY = "2031";
     public static final String RUN_TIME_DAY = "2041";
     public static final String MINUTE = "2051";
+    public static final String NOISE_ONCE = "2052";
     public static final String HOUR = "2061";
+    public static final String STANDARD_CHECK_DATA = "2062";
     public static final String RESTART_TIME = "2081";
+    public static final String FURNACE_TEMP = "2111";
 
     public static final String CALIBRATE = "3011";
     public static final String SAMPLE_NOW = "3012";
     public static final String CLEAN = "3013";
     public static final String COMPARE_SAMPLE = "3014";
+    /**
+     * 2017 版：上位机下发"超标留样"；2025 版：现场机上传留样信息（VaseNo、i43001~i43007）
+     */
     public static final String OVER_LIMIT_SAMPLE = "3015";
     public static final String SET_SAMPLE_PERIOD = "3016";
     public static final String GET_SAMPLE_PERIOD = "3017";
@@ -66,12 +92,14 @@ public final class Hj212Commands {
     public static final String GET_SN = "3019";
     public static final String GET_INFO = "3020";
     public static final String SET_INFO = "3021";
+    public static final String SAMPLE_TASK = "3022";
+    public static final String START_STANDARD_CHECK = "3024";
 
     public static final String REQUEST_ACK = "9011";
     public static final String EXEC_RESULT = "9012";
     public static final String NOTIFY_ACK = "9013";
     public static final String DATA_ACK = "9014";
-
+    public static final String HEARTBEAT = "9015";
 
     // ===== 请求应答 QnRtn，标准 6.6.3 表 7《请求命令返回表》 =====
     public static final int QN_READY = 1;
@@ -143,17 +171,38 @@ public final class Hj212Commands {
         }
     }
 
-    // ===== 数据标记 xxx-Flag，标准 6.6.4 表 8《数据标记表》 =====
+    // ===== 数据标记 xxx-Flag =====
 
     /**
-     * 数据标记（表 8）：N 仪器工作正常、F 仪器停运、M 仪器处于维护期间产生的数据、S 手工输入的设定值、
+     * 2017 版（6.6.4 表 8）：N 仪器工作正常、F 仪器停运、M 仪器处于维护期间产生的数据、S 手工输入的设定值、
      * D 仪器故障、C 仪器处于校准状态、T 仪器采样数值超过测量上限、B 仪器与数采仪通讯异常。
      * <p>
-     * 哪些标记的数据算有效，标准里没有规定，下面是本平台的处理规则：停运、维护、故障、校准、通讯异常时的数据
-     * 不是真实排放，<b>不参与超标判断</b>；超测量上限（T）说明实际值比读数还高，照常参与判断。
+     * 2025 版（6.7.4）把标记改成最长 3 个字符、区分大小写，分两张表：
+     * <ul>
+     *     <li>表 10 自动监测设备标记：N 数据有效、D 故障（含断电、现场端内部通信故障）、C 校准、M 日常维护、
+     *     T 超量程、Td 关键工况参数故障。同时有多种时按 D、C、M、T、Td 的顺序认定</li>
+     *     <li>表 11 生产工况标记：N 正常运行、St 启动（Stc 冷启动、Sth 热启动）、Sd 停炉（机）、B 闷炉、
+     *     F 停运（废气）/ 停排（废水）、Sr 故障 / 事故</li>
+     * </ul>
+     * 注意 B 在两版里含义不同：2017 版是"通讯异常"，2025 版是"闷炉"；S 在 2025 版不再使用。
+     * <p>
+     * 哪些标记的数据参与超标判断，标准里没有规定，下面是本平台的处理规则：
+     * 停运、维护、故障、校准、通讯异常、启停炉时的数据不是正常工况下的排放，<b>不参与超标判断</b>；
+     * 超量程（T）说明实际值比读数还高（2025 版 8.1.1 也规定按量程上限作为有效数据），照常判断；
+     * 故障 / 事故（Sr）是"无法正常运行且持续排放污染物"，更要判断。
      */
     public static boolean isValidFlag(String flag) {
-        return flag == null || "N".equals(flag) || "T".equals(flag) || "S".equals(flag);
+        return flag == null || "N".equals(flag) || "T".equals(flag) || "S".equals(flag) || "Sr".equals(flag);
+    }
+
+    /**
+     * 按协议版本取标记的中文名：B 在 2025 版是闷炉
+     */
+    public static String flagName(String flag, int version) {
+        if (version >= Hj212Packet.VERSION_2025 && "B".equals(flag)) {
+            return "闷炉";
+        }
+        return flagName(flag);
     }
 
     public static String flagName(String flag) {
@@ -161,6 +210,18 @@ public final class Hj212Commands {
             return "未标记";
         }
         switch (flag) {
+            case "Td":
+                return "关键工况参数故障";
+            case "St":
+                return "启动";
+            case "Stc":
+                return "冷启动";
+            case "Sth":
+                return "热启动";
+            case "Sd":
+                return "停炉（机）";
+            case "Sr":
+                return "故障 / 事故";
             case "N":
                 return "正常";
             case "F":
@@ -198,6 +259,16 @@ public final class Hj212Commands {
         }
         switch (cn) {
             case SET_TIMEOUT: return "设置超时时间及重发次数";
+            case HARDWARE_SN: return "上传数采仪硬件序号";
+            case SET_MN: return "设置数采仪 MN 编码";
+            case SECRET_KEY: return "密钥更新";
+            case RAW_DATA: return "原始监测数据";
+            case NOISE_ONCE: return "噪声单次测量数据";
+            case STANDARD_CHECK_DATA: return "自动标样核查（校准）数据";
+            case FURNACE_TEMP: return "炉膛温度 5 分钟均值";
+            case SAMPLE_TASK: return "下发即时留样任务";
+            case START_STANDARD_CHECK: return "启动标样核查";
+            case HEARTBEAT: return "心跳包";
             case GET_TIME: return "提取现场机时间";
             case SET_TIME: return "设置现场机时间";
             case TIME_CALIBRATION_REQ: return "现场机时间校准请求";
@@ -219,7 +290,7 @@ public final class Hj212Commands {
             case SAMPLE_NOW: return "即时采样";
             case CLEAN: return "启动清洗 / 反吹";
             case COMPARE_SAMPLE: return "比对采样";
-            case OVER_LIMIT_SAMPLE: return "超标留样";
+            case OVER_LIMIT_SAMPLE: return "超标留样 / 留样信息";
             case SET_SAMPLE_PERIOD: return "设置采样时间周期";
             case GET_SAMPLE_PERIOD: return "提取采样时间周期";
             case GET_SAMPLE_OUT_TIME: return "提取出样时间";

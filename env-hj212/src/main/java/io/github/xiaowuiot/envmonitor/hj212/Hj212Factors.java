@@ -74,9 +74,29 @@ public final class Hj212Factors {
     }
 
     /**
-     * 是不是监测因子编码（i 开头的是现场端信息编码，见标准 6.4.2，不算因子）
+     * 2025 版的 6 位编码：第 1 位类别字母，后 5 位数字或小写字母（关键生产工况 p11a01 这种第 4 位是字母）
+     */
+    public static final Pattern CODE_2025 = Pattern.compile("[a-z][0-9a-z]{5}");
+
+    /**
+     * 噪声参数（GB 3096）：LA、Leq、L5、L10、Ldn、LMx……，不是 6 位编码
+     */
+    public static final Pattern NOISE = Pattern.compile("L[0-9A-Za-z]{1,3}");
+
+    /**
+     * 是不是监测参数编码，入库时用。
+     * <ul>
+     *     <li>污染物（w 水、a 气，HJ 524、HJ 525）、工况（e 废水、g 废气）：字母 + 5 位</li>
+     *     <li>2025 版新增：用电 d 开头、关键生产工况 p 开头，都是 6 位</li>
+     *     <li>噪声：LA、Leq、L5 这样的（2025 版附录 C 表 C.32 ~ C.35）</li>
+     * </ul>
+     * i 开头的是现场端信息编码（6.5.4），不是监测参数；SB 开头的是污染治理设施（运行状态 RS、运行时间 RT）
      */
     public static boolean isFactorCode(String code) {
-        return code != null && CODE_2017.matcher(code).matches() && code.charAt(0) != 'i';
+        if (code == null || code.isEmpty() || code.charAt(0) == 'i') {
+            return false;
+        }
+        return CODE_2017.matcher(code).matches() || CODE_2025.matcher(code).matches() || NOISE.matcher(code).matches()
+                || code.startsWith("SB");
     }
 }

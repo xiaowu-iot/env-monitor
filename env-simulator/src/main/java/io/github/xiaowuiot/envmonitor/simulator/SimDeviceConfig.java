@@ -30,6 +30,18 @@ public class SimDeviceConfig {
      * 超标场景作用在哪个因子上，为空时取第一个
      */
     private String scenarioFactor;
+    /**
+     * 协议版本：2017 或 2025
+     */
+    private String protocolVersion = "2017";
+    /**
+     * 2025 版的通信密钥（16 个字符）。为空时不加密
+     */
+    private String secretKey;
+    /**
+     * 2025 版心跳包（9015）间隔，0 不发
+     */
+    private int heartbeatSeconds = 60;
 
     public static SimDeviceConfig water(String mn) {
         SimDeviceConfig c = new SimDeviceConfig();
@@ -39,7 +51,7 @@ public class SimDeviceConfig {
         c.factors.add(new Factor("w21003", 1.2, 0.4, 2));
         c.factors.add(new Factor("w01001", 7.2, 0.3, 2));
         c.factors.add(new Factor("w21011", 0.25, 0.08, 3));
-        c.factors.add(new Factor("w00000", 12, 3, 2));
+        c.factors.add(new Factor("w00000", 110, 25, 1));
         return c;
     }
 
@@ -141,6 +153,37 @@ public class SimDeviceConfig {
 
     public SimDeviceConfig setScenarioFactor(String scenarioFactor) {
         this.scenarioFactor = scenarioFactor;
+        return this;
+    }
+
+    public String getProtocolVersion() {
+        return protocolVersion;
+    }
+
+    public SimDeviceConfig setProtocolVersion(String protocolVersion) {
+        this.protocolVersion = protocolVersion == null || protocolVersion.isBlank() ? "2017" : protocolVersion;
+        return this;
+    }
+
+    public boolean isV2025() {
+        return "2025".equals(protocolVersion);
+    }
+
+    public String getSecretKey() {
+        return secretKey;
+    }
+
+    public SimDeviceConfig setSecretKey(String secretKey) {
+        this.secretKey = secretKey;
+        return this;
+    }
+
+    public int getHeartbeatSeconds() {
+        return heartbeatSeconds;
+    }
+
+    public SimDeviceConfig setHeartbeatSeconds(int heartbeatSeconds) {
+        this.heartbeatSeconds = heartbeatSeconds;
         return this;
     }
 }

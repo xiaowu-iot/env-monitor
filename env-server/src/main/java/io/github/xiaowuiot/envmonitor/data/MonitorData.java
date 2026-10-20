@@ -59,7 +59,7 @@ public class MonitorData {
     /** 折算值 ZsRtd / ZsAvg（废气） */
     private Double zsVal;
 
-    /** 数据标记（HJ212-2017 表 8）N 正常、F 停运、M 维护、S 手工输入、D 故障、C 校准、T 超测量上限、B 通讯异常 */
+    /** 数据标记。2017 版（表 8）N 正常、F 停运、M 维护、S 手工输入、D 故障、C 校准、T 超测量上限、B 通讯异常；2025 版（6.7.4）最长 3 位，N、D、C、M、T、Td、St、Stc、Sth、Sd、B 闷炉、F、Sr */
     @Column(length = 4)
     private String flag;
 
@@ -71,6 +71,14 @@ public class MonitorData {
 
     /** 是不是平台主动提取的历史数据 */
     private boolean requested;
+
+    /** 2025 版扩充数据标记 EFlag（仪表自定义，最长 4 位） */
+    @Column(length = 8)
+    private String eflag;
+
+    /** 2025 版补传数据（RF=1） */
+    @Column(columnDefinition = "boolean default false")
+    private boolean refill;
 
     private LocalDateTime receivedAt = LocalDateTime.now();
 
@@ -168,6 +176,22 @@ public class MonitorData {
 
     public void setFlag(String flag) {
         this.flag = flag;
+    }
+
+    public String getEflag() {
+        return eflag;
+    }
+
+    public void setEflag(String eflag) {
+        this.eflag = eflag;
+    }
+
+    public boolean isRefill() {
+        return refill;
+    }
+
+    public void setRefill(boolean refill) {
+        this.refill = refill;
     }
 
     public Integer getRs() {

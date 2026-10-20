@@ -26,6 +26,7 @@ public class RawLogger {
     public RawMessage in(String raw, Hj212Packet p, Long deviceId, String remote, String error) {
         RawMessage m = new RawMessage(RawMessage.IN, p == null ? null : p.getMn(), deviceId,
                 p == null ? null : p.getCn(), p == null ? null : p.getQn(), raw, remote);
+        m.encrypted(p != null && p.isEncrypted());
         if (error != null) {
             m.fail(error);
         }

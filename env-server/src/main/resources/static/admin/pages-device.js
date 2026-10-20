@@ -3,7 +3,7 @@
   const { reactive, ref, onMounted, onUnmounted } = Vue;
   const { api, fail, ok, fmt, short, has, qs, useTimer, ElMessageBox } = EM;
 
-  // 系统编码 ST，取自 HJ212-2017 6.6.1 表 5《系统编码表》
+  // 系统编码 ST，取自 HJ212-2017 6.6.1 表 5、HJ212-2025 6.7.1.2 表 7《系统编码表》
   const ST_OPTIONS = [
     { v: '32', l: '32 地表水体环境污染源' }, { v: '31', l: '31 大气环境污染源' }, { v: '21', l: '21 地表水质量监测' },
     { v: '22', l: '22 空气质量监测' }, { v: '23', l: '23 声环境质量监测' }, { v: '24', l: '24 地下水质量监测' },
@@ -72,9 +72,20 @@
       onUnmounted(() => clearInterval(timer));
       function edit(d, mn) {
         dlg.id = d ? d.id : null;
-        dlg.f = d ? { mn: d.mn, name: d.name, siteId: d.siteId, password: '', st: d.st, enabled: d.enabled, factorCodes: [...d.factorCodes], remark: d.remark }
-          : { mn: mn || '', name: '', siteId: null, password: '123456', st: '32', enabled: true, factorCodes: ['w01018', 'w21003', 'w01001'], remark: '' };
+        dlg.f = d ? { mn: d.mn, name: d.name, siteId: d.siteId, password: '', st: d.st, enabled: d.enabled, factorCodes: [...d.factorCodes], remark: d.remark,
+            protocolVersion: d.protocolVersion || '', requireEncryption: d.requireEncryption, hasSecretKey: d.hasSecretKey, secretKeyCreateTime: d.secretKeyCreateTime }
+          : { mn: mn || '', name: '', siteId: null, password: '123456', st: '32', enabled: true, factorCodes: ['w01018', 'w21003', 'w01001'], remark: '',
+            protocolVersion: '', requireEncryption: false, hasSecretKey: false };
+        keyResult.value = null;
         dlg.show = true;
+      }
+      // HJ212-2025：登记通信密钥，随机生成的密钥只显示这一次
+      const keyResult = ref(null);
+      async function registerKey() {
+        try {
+          keyResult.value = await api('/devices/' + dlg.id + '/secret-key', { method: 'POST', body: {} });
+          dlg.f.hasSecretKey = true; dlg.f.secretKeyCreateTime = keyResult.value.createTime; load();
+        } catch (e) { fail(e); }
       }
       async function save() {
         const body = { ...dlg.f };
@@ -82,7 +93,8 @@
         try { await api('/devices' + (dlg.id ? '/' + dlg.id : ''), { method: dlg.id ? 'PUT' : 'POST', body }); ok(); dlg.show = false; load(); } catch (e) { fail(e); }
       }
       async function toggle(d) {
-        try { await api('/devices/' + d.id, { method: 'PUT', body: { mn: d.mn, name: d.name, siteId: d.siteId, st: d.st, enabled: !d.enabled, factorCodes: d.factorCodes, remark: d.remark } }); ok(d.enabled ? '已停用' : '已启用'); load(); } catch (e) { fail(e); }
+        try { await api('/devices/' + d.id, { method: 'PUT', body: { mn: d.mn, name: d.name, siteId: d.siteId, st: d.st, enabled: !d.enabled, factorCodes: d.factorCodes, remark: d.remark,
+          requireEncryption: d.requireEncryption } }); ok(d.enabled ? '已停用' : '已启用'); load(); } catch (e) { fail(e); }
       }
       async function del(d) {
         await ElMessageBox.confirm('删除设备「' + d.name + '」？历史数据保留。', '确认', { type: 'warning' });
@@ -98,7 +110,7 @@
         if (!detail.d) return;
         try { detail.raws = await api('/devices/' + detail.d.id + '/raw?' + qs({ page: detail.rawPage, size: 30, cn: detail.rawCn })); } catch (e) { /* 刷新失败不打扰 */ }
       }
-      return { list, sites, factors, unknown, q, dlg, detail, load, edit, save, toggle, del, open, refreshRaw, has, fmt, short, ST_OPTIONS };
+      return { list, sites, factors, unknown, q, dlg, detail, load, edit, save, toggle, del, open, refreshRaw, has, fmt, short, ST_OPTIONS, keyResult, registerKey };
     },
     template: `<div>
       <el-alert v-if="unknown.length" type="warning" :closable="false" class="panel" style="padding:12px 16px">
@@ -120,6 +132,8 @@
           <el-table-column prop="mn" label="MN" width="200" />
           <el-table-column label="站点" min-width="160"><template #default="{row}">{{ row.siteName || '—' }}</template></el-table-column>
           <el-table-column label="监测因子" min-width="200"><template #default="{row}"><span class="muted">{{ row.factorNames.join('、') }}</span></template></el-table-column>
+          <el-table-column label="协议" width="110"><template #default="{row}"><span v-if="row.protocolVersion">{{ row.protocolVersion }}</span><span v-else class="muted">—</span>
+            <el-tag v-if="row.protocolVersion === '2025'" size="small" :type="row.hasSecretKey ? 'success' : 'info'" style="margin-left:4px">{{ row.hasSecretKey ? '加密' : '明文' }}</el-tag></template></el-table-column>
           <el-table-column label="最后上报" width="120"><template #default="{row}">{{ short(row.lastSeenAt) || '—' }}<div class="muted">{{ row.lastIp }}</div></template></el-table-column>
           <el-table-column label="操作" width="190" fixed="right"><template #default="{row}">
             <el-button link type="primary" @click="open(row)">报文</el-button>
@@ -130,7 +144,17 @@
 
       <el-dialog v-model="dlg.show" :title="dlg.id ? '编辑设备' : '登记设备'" width="560px">
         <el-form label-width="90px">
-          <el-form-item label="MN 号"><el-input v-model="dlg.f.mn" placeholder="数采仪的设备唯一标识，2017 版一般 24 位" /></el-form-item>
+          <el-form-item label="MN 号"><el-input v-model="dlg.f.mn" placeholder="2017 版是设备唯一标识，2025 版是入网编码，一般 24 位" /></el-form-item>
+          <el-form-item label="协议版本"><el-select v-model="dlg.f.protocolVersion" style="width:100%"><el-option label="自动识别（按收到的报文）" value="" /><el-option label="HJ212-2017" value="2017" /><el-option label="HJ212-2025" value="2025" /><el-option label="HJ/T 212-2005" value="2005" /></el-select></el-form-item>
+          <el-form-item label="通信密钥" v-if="dlg.f.protocolVersion === '2025'">
+            <div>
+              <span v-if="dlg.f.hasSecretKey" class="muted">已登记（{{ dlg.f.secretKeyCreateTime }}）</span><span v-else class="muted">未登记，按明文接收</span>
+              <el-button v-if="dlg.id" link type="primary" @click="registerKey">{{ dlg.f.hasSecretKey ? '重新生成' : '随机生成' }}</el-button>
+              <span v-else class="muted">（保存后再登记）</span>
+              <div v-if="keyResult">请把密钥写进数采仪，关闭后不再显示：<code style="user-select:all">{{ keyResult.key }}</code></div>
+              <div><el-switch v-model="dlg.f.requireEncryption" /><span class="muted" style="margin-left:8px">要求加密传输：数据命令不加密的不收（标准 6.4）</span></div>
+            </div>
+          </el-form-item>
           <el-form-item label="名称"><el-input v-model="dlg.f.name" /></el-form-item>
           <el-form-item label="站点"><el-select v-model="dlg.f.siteId" clearable style="width:100%"><el-option v-for="s in sites" :key="s.id" :label="s.name" :value="s.id" /></el-select></el-form-item>
           <el-form-item label="系统编码"><el-select v-model="dlg.f.st" style="width:100%"><el-option v-for="o in ST_OPTIONS" :key="o.v" :label="o.l" :value="o.v" /></el-select></el-form-item>
@@ -147,7 +171,7 @@
           <div class="toolbar"><el-input v-model="detail.rawCn" placeholder="按 CN 筛选，如 2011" style="width:180px" clearable @change="detail.rawPage=0;refreshRaw()" /><span class="muted">每 3 秒刷新</span></div>
           <div class="raws">
             <div v-for="r in detail.raws.items" :key="r.id" class="raw" :class="[r.direction, {bad: !r.ok}]">
-              <span class="dir">{{ r.direction === 'IN' ? '↓ 收' : '↑ 发' }}</span><span class="tm">{{ fmt(r.createdAt, true) }}</span><span v-if="!r.ok" class="err">{{ r.error }}</span>
+              <span class="dir">{{ r.direction === 'IN' ? '↓ 收' : '↑ 发' }}</span><span class="tm">{{ fmt(r.createdAt, true) }}</span><el-tag v-if="r.encrypted" size="small" type="success" style="margin-right:6px">SM4 加密 · 已解密显示</el-tag><span v-if="!r.ok" class="err">{{ r.error }}</span>
               <code>{{ r.content }}</code>
             </div>
           </div>
@@ -169,7 +193,7 @@
       return { list, dlg, edit, save, has };
     },
     template: `<div class="panel">
-      <div class="toolbar"><el-button v-if="has('DEVICE_MANAGE')" type="primary" @click="edit()">新增因子</el-button><span class="muted">初始数据是 HJ212-2017 附录里的常用编码，名称和单位以标准原文为准；地方平台约定的编码可以在这里补充</span></div>
+      <div class="toolbar"><el-button v-if="has('DEVICE_MANAGE')" type="primary" @click="edit()">新增因子</el-button><span class="muted">初始数据是 HJ212 附录 B 里的常用编码，名称和单位以标准原文为准；地方平台约定的编码可以在这里补充</span></div>
       <el-table :data="list" size="small">
         <el-table-column prop="code" label="编码" width="120" /><el-table-column prop="name" label="名称" /><el-table-column prop="unit" label="单位" width="120" />
         <el-table-column prop="category" label="类别" width="80" /><el-table-column prop="decimals" label="小数位" width="80" />
@@ -204,7 +228,7 @@
     template: `<div>
       <div class="panel">
         <div class="toolbar"><el-button type="primary" @click="start([])">全部启动</el-button><el-button @click="stop([])">全部停止</el-button>
-          <span class="muted">模拟器按设备的 MN、密码、因子生成数采仪，通过真实 TCP 连接按 HJ212-2017 上报，平台这边和接真设备完全一样。切到"超标"就能看到预警 → 派单 → 钉钉通知。</span></div>
+          <span class="muted">模拟器按设备的 MN、密码、因子生成数采仪，通过真实 TCP 连接按 HJ212 上报（设备设成 2025 版就按 2025 版加密上报），平台这边和接真设备完全一样。切到"超标"就能看到预警 → 派单 → 钉钉通知。</span></div>
         <el-table :data="rows" size="small" row-key="mn" :expand-row-keys="expanded ? [expanded] : []">
           <el-table-column type="expand"><template #default="{row}"><div v-if="row.sim" class="sim-logs"><div v-for="(l,i) in row.sim.logs" :key="i">{{ l }}</div></div><div v-else class="muted">没有运行</div></template></el-table-column>
           <el-table-column label="设备" min-width="170"><template #default="{row}">{{ row.name }}<div class="muted">{{ row.mn }}</div></template></el-table-column>

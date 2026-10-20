@@ -25,7 +25,7 @@
         <div class="hero-text">
           <div class="hero-brand"><span class="logo-dot"><icon name="leaf" :size="22" /></span>环境监测平台</div>
           <h1>守护每一条河流<br>每一口新鲜空气</h1>
-          <p>按 HJ212-2017 接收在线监测数据，超标自动预警并派给站点负责人，处理、审核全程留痕，钉钉实时提醒。</p>
+          <p>按 HJ212-2017 / HJ212-2025 接收在线监测数据，超标自动预警并派给站点负责人，处理、审核全程留痕，钉钉实时提醒。</p>
           <div class="hero-tags">
             <span><icon name="water" :size="15" />水质在线监测</span>
             <span><icon name="air" :size="15" />烟气 / 环境空气</span>
@@ -36,7 +36,7 @@
         <div class="hero-cards">
           <div class="glass"><small>城东污水处理厂 · COD</small><b>28.6<em>mg/L</em></b><i class="ok">达标</i></div>
           <div class="glass"><small>热电厂 1 号烟囱 · SO₂</small><b>17.9<em>mg/m³</em></b><i class="ok">达标</i></div>
-          <div class="glass"><small>今日设备在线率</small><b>99.2<em>%</em></b><i class="up">HJ212-2017</i></div>
+          <div class="glass"><small>今日设备在线率</small><b>99.2<em>%</em></b><i class="up">HJ212-2025</i></div>
         </div>
       </div>
       <div class="login-right">
@@ -53,7 +53,7 @@
             <el-button v-for="a in opts.accounts" :key="a.username" size="small" @click="demo(a.username)">{{ a.label }}</el-button>
           </div>
           <div class="muted" v-if="opts.demo" style="margin-top:8px">管理员 admin 的初始密码在服务器 data/initial-admin.txt</div>
-          <div class="login-foot"><span class="muted">开源版</span><span class="muted">HJ212-2017 · 环保行业标准</span></div>
+          <div class="login-foot"><span class="muted">开源版</span><span class="muted">HJ212-2017 / 2025 · 环保行业标准</span></div>
         </div>
       </div>
     </div>`,
@@ -145,8 +145,8 @@
             <nav class="menu">
               <a v-for="p in group.items" :key="p.k" :class="{ on: p.k === current.k }" @click="nav(p.k)"><icon :name="p.ic" /><span>{{ p.t }}</span><em v-if="p.k==='inbox' && state.unread" class="badge">{{ state.unread }}</em></a>
             </nav>
-            <div class="side-card"><b>设备接入</b>数采仪按 HJ212-2017 连到平台的 TCP 端口，登记好 MN 号就能收数据。</div>
-            <div class="side-foot"><span>HJ212-2017</span><span>开源版</span></div>
+            <div class="side-card"><b>设备接入</b>数采仪按 HJ212-2017 或 2025 连到平台的 TCP 端口，登记好 MN 号就能收数据，2025 版的加密报文登记密钥后自动解开。</div>
+            <div class="side-foot"><span>HJ212-2025</span><span>开源版</span></div>
           </aside>
           <main class="main">
             <div class="page-head"><div>

@@ -63,6 +63,18 @@ public class Device {
     @Column(length = 8)
     private String protocolVersion;
 
+    /** 2025 版通信密钥（SM4），库里存的是用平台主密钥加密后的十六进制，不存明文，见 SecretKeyService */
+    @Column(length = 64)
+    private String secretKey;
+
+    /** 密钥创建时间 SKCreateTime，17 位，精确到毫秒 */
+    @Column(length = 17)
+    private String secretKeyCreateTime;
+
+    /** 要求加密传输：2025 版的数据命令（2000 ~ 2999）、3020、1014 不加密的不收 */
+    @Column(columnDefinition = "boolean default false")
+    private boolean requireEncryption;
+
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "env_device_factor", joinColumns = @JoinColumn(name = "device_id"))
     @OrderColumn(name = "sort")
@@ -181,6 +193,30 @@ public class Device {
 
     public void setProtocolVersion(String protocolVersion) {
         this.protocolVersion = protocolVersion;
+    }
+
+    public String getSecretKey() {
+        return secretKey;
+    }
+
+    public void setSecretKey(String secretKey) {
+        this.secretKey = secretKey;
+    }
+
+    public String getSecretKeyCreateTime() {
+        return secretKeyCreateTime;
+    }
+
+    public void setSecretKeyCreateTime(String secretKeyCreateTime) {
+        this.secretKeyCreateTime = secretKeyCreateTime;
+    }
+
+    public boolean isRequireEncryption() {
+        return requireEncryption;
+    }
+
+    public void setRequireEncryption(boolean requireEncryption) {
+        this.requireEncryption = requireEncryption;
     }
 
     public List<String> getFactorCodes() {

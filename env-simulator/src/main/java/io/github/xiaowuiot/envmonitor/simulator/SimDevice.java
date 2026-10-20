@@ -1,6 +1,7 @@
 package io.github.xiaowuiot.envmonitor.simulator;
 
 import io.github.xiaowuiot.envmonitor.hj212.Hj212Commands;
+import io.github.xiaowuiot.envmonitor.hj212.Hj212Crypto;
 import io.github.xiaowuiot.envmonitor.hj212.Hj212Packet;
 import io.github.xiaowuiot.envmonitor.hj212.Hj212Time;
 import io.github.xiaowuiot.envmonitor.hj212.codec.Hj212Encoder;
@@ -50,6 +51,7 @@ public class SimDevice {
     private volatile boolean connected;
     private ScheduledFuture<?> rtdTask;
     private ScheduledFuture<?> minuteTask;
+    private ScheduledFuture<?> heartbeatTask;
 
     private volatile long sent;
     private volatile long acked;
@@ -118,7 +120,12 @@ public class SimDevice {
     private void onConnected(Channel ch) {
         channel = ch;
         connected = true;
-        addLog("已连接平台 " + config.getHost() + ":" + config.getPort());
+        addLog("已连接平台 " + config.getHost() + ":" + config.getPort() + (config.isV2025() ? "（HJ212-2025）" : ""));
+        if (config.isV2025() && config.getHeartbeatSeconds() > 0) {
+            // 2025 版心跳包（表 C.54）
+            heartbeatTask = loop.scheduleAtFixedRate(() -> send(create(Hj212Commands.HEARTBEAT)), config.getHeartbeatSeconds(),
+                    config.getHeartbeatSeconds(), TimeUnit.SECONDS);
+        }
         int rtd = Math.max(1, config.getRtdIntervalSeconds());
         int minute = Math.max(1, config.getMinuteIntervalSeconds());
         rtdTask = loop.scheduleAtFixedRate(this::uploadRealtime, 1, rtd, TimeUnit.SECONDS);
@@ -140,14 +147,17 @@ public class SimDevice {
         if (minuteTask != null) {
             minuteTask.cancel(false);
         }
-        rtdTask = minuteTask = null;
+        if (heartbeatTask != null) {
+            heartbeatTask.cancel(false);
+        }
+        rtdTask = minuteTask = heartbeatTask = null;
     }
 
     private void uploadRealtime() {
         if (!connected) {
             return;
         }
-        Hj212Packet p = Hj212Packet.create(config.getSt(), Hj212Commands.REALTIME, config.getPassword(), config.getMn(), true)
+        Hj212Packet p = create(Hj212Commands.REALTIME)
                 .putParam("DataTime", Hj212Time.format(LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)));
         for (SimDeviceConfig.Factor f : config.getFactors()) {
             double v = nextValue(f);
@@ -161,7 +171,7 @@ public class SimDevice {
         if (!connected || minuteBuffer.isEmpty()) {
             return;
         }
-        Hj212Packet p = Hj212Packet.create(config.getSt(), Hj212Commands.MINUTE, config.getPassword(), config.getMn(), true)
+        Hj212Packet p = create(Hj212Commands.MINUTE)
                 .putParam("DataTime", Hj212Time.format(LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES)));
         for (SimDeviceConfig.Factor f : config.getFactors()) {
             List<Double> values = minuteBuffer.get(f.code());
@@ -197,9 +207,21 @@ public class SimDevice {
         return v;
     }
 
+    /**
+     * 按配置的版本组包，要求应答：2017 版 Flag=5，2025 版 Flag=9
+     */
+    private Hj212Packet create(String cn) {
+        return Hj212Packet.create(config.isV2025() ? Hj212Packet.VERSION_2025 : Hj212Packet.VERSION_2017, config.getSt(), cn,
+                config.getPassword(), config.getMn(), true);
+    }
+
     private void send(Hj212Packet p) {
         if (channel == null || !channel.isActive()) {
             return;
+        }
+        if (config.isV2025() && config.getSecretKey() != null && Hj212Crypto.mustEncrypt(p.getCn())) {
+            // 2025 版 6.4.4：数据命令加密上传
+            p.encryptWith(Hj212Crypto.key(config.getSecretKey()));
         }
         channel.writeAndFlush(p);
         sent++;

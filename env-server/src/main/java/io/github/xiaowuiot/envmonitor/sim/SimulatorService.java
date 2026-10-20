@@ -36,7 +36,7 @@ public class SimulatorService {
             Map.entry("w01001", new double[]{7.2, 0.3, 2}),
             Map.entry("w21011", new double[]{0.25, 0.08, 3}),
             Map.entry("w21001", new double[]{9, 2, 2}),
-            Map.entry("w00000", new double[]{12, 3, 2}),
+            Map.entry("w00000", new double[]{110, 25, 1}),
             Map.entry("a21026", new double[]{18, 5, 1}),
             Map.entry("a21002", new double[]{30, 8, 1}),
             Map.entry("a34013", new double[]{5, 1.5, 1}),
@@ -48,9 +48,12 @@ public class SimulatorService {
     private final EnvProperties props;
     private final Simulator simulator = new Simulator(2);
 
-    public SimulatorService(DeviceRepository devices, EnvProperties props) {
+    private final io.github.xiaowuiot.envmonitor.device.SecretKeyService keys;
+
+    public SimulatorService(DeviceRepository devices, EnvProperties props, io.github.xiaowuiot.envmonitor.device.SecretKeyService keys) {
         this.devices = devices;
         this.props = props;
+        this.keys = keys;
     }
 
     @EventListener(ApplicationReadyEvent.class)
@@ -72,7 +75,10 @@ public class SimulatorService {
                 .setSt(d.getSt() == null ? "32" : d.getSt())
                 .setRtdIntervalSeconds(props.simulator().rtdIntervalSeconds())
                 .setMinuteIntervalSeconds(props.simulator().minuteIntervalSeconds())
-                .setScenario(scenario == null ? Scenario.NORMAL : scenario);
+                .setScenario(scenario == null ? Scenario.NORMAL : scenario)
+                // 2025 版设备按平台上登记的密钥加密上报，模拟"数采仪里固化的密钥"
+                .setProtocolVersion(d.getProtocolVersion())
+                .setSecretKey(d.getSecretKey() == null ? null : keys.open(d.getSecretKey()));
         List<String> codes = d.getFactorCodes().isEmpty() ? List.of("w01018", "w21003") : d.getFactorCodes();
         for (String code : codes) {
             double[] p = PROFILES.getOrDefault(code, new double[]{10, 2, 2});

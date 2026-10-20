@@ -45,9 +45,12 @@ public class DeviceController {
     private final DeviceStateService state;
     private final CurrentUser current;
 
+    private final SecretKeyService keys;
+
     public DeviceController(DeviceRepository devices, SiteRepository sites, FactorService factors,
                             RawMessageRepository raws, SessionRegistry sessions, DeviceStateService state,
-                            CurrentUser current) {
+                            CurrentUser current, SecretKeyService keys) {
+        this.keys = keys;
         this.devices = devices;
         this.sites = sites;
         this.factors = factors;
@@ -59,13 +62,30 @@ public class DeviceController {
 
     public record DeviceView(Long id, String mn, String name, Long siteId, String siteName, String st, boolean enabled,
                              boolean online, LocalDateTime lastSeenAt, String lastIp, String protocolVersion,
-                             List<String> factorCodes, List<String> factorNames, boolean hasPassword, String remark) {
+                             List<String> factorCodes, List<String> factorNames, boolean hasPassword, String remark,
+                             // HJ212-2025：是否要求加密、密钥状态（不返回密钥本身）
+                             boolean requireEncryption, boolean hasSecretKey, String secretKeyCreateTime) {
     }
 
     public record DeviceRequest(
             @NotBlank(message = "请输入 MN 号") @Pattern(regexp = "[0-9A-Za-z]{8,32}", message = "MN 号为 8–32 位字母或数字") String mn,
             @NotBlank(message = "请输入设备名称") String name,
-            Long siteId, String password, String st, Boolean enabled, List<String> factorCodes, String remark) {
+            Long siteId, String password, String st, Boolean enabled, List<String> factorCodes, String remark,
+            String protocolVersion, Boolean requireEncryption) {
+    }
+
+    public record KeyRequest(String key) {
+    }
+
+    /**
+     * 登记（或重置）2025 版的通信密钥。不填就随机生成；返回的密钥只显示这一次，要写进数采仪
+     */
+    @PostMapping("/devices/{id}/secret-key")
+    @PreAuthorize("hasAuthority('PERM_DEVICE_MANAGE')")
+    public Map<String, String> registerKey(@PathVariable Long id, @RequestBody(required = false) KeyRequest body) {
+        Device d = check(id);
+        String key = keys.register(d, body == null ? null : body.key());
+        return Map.of("key", key, "createTime", d.getSecretKeyCreateTime());
     }
 
     @GetMapping("/devices")
@@ -131,6 +151,13 @@ public class DeviceController {
             d.setPassword(body.password().isBlank() ? null : body.password().trim());
         }
         d.setSt(body.st() == null || body.st().isBlank() ? "32" : body.st());
+        if (body.protocolVersion() != null) {
+            d.setProtocolVersion(body.protocolVersion().isBlank() ? null : body.protocolVersion());
+        }
+        if (body.requireEncryption() != null) {
+            d.setRequireEncryption(body.requireEncryption());
+        }
+        keys.evict(d.getMn());
         if (body.enabled() != null) {
             d.setEnabled(body.enabled());
         }
@@ -181,7 +208,8 @@ public class DeviceController {
         return new DeviceView(d.getId(), d.getMn(), d.getName(), d.getSiteId(), s == null ? null : s.getName(),
                 d.getSt(), d.isEnabled(), d.isOnline(), d.getLastSeenAt(), d.getLastIp(), d.getProtocolVersion(),
                 d.getFactorCodes(), d.getFactorCodes().stream().map(factors::name).toList(),
-                d.getPassword() != null && !d.getPassword().isEmpty(), d.getRemark());
+                d.getPassword() != null && !d.getPassword().isEmpty(), d.getRemark(),
+                d.isRequireEncryption(), d.getSecretKey() != null, d.getSecretKeyCreateTime());
     }
 
     // ===================== 站点 =====================

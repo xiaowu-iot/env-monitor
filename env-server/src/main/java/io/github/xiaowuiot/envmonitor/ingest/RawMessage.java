@@ -45,6 +45,10 @@ public class RawMessage {
 
     private boolean ok = true;
 
+    /** 2025 版加密传输的报文。content 里存的是解密后的明文，方便排查 */
+    @jakarta.persistence.Column(columnDefinition = "boolean default false")
+    private boolean encrypted;
+
     @Column(length = 200)
     private String error;
 
@@ -64,6 +68,15 @@ public class RawMessage {
         this.qn = qn;
         this.content = content != null && content.length() > 10000 ? content.substring(0, 10000) : content;
         this.remote = remote;
+    }
+
+    public RawMessage encrypted(boolean encrypted) {
+        this.encrypted = encrypted;
+        return this;
+    }
+
+    public boolean isEncrypted() {
+        return encrypted;
     }
 
     public RawMessage fail(String error) {
