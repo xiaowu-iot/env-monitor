@@ -73,7 +73,7 @@
     { k: 'alarm-rules', t: '预警规则', ic: 'rule', g: '系统配置', c: Pages.AlarmRules, p: 'ALARM_VIEW' },
     { k: 'notify', t: '钉钉通知', ic: 'bell', g: '系统配置', c: Pages.Notify, p: 'SYSTEM_ADMIN' },
     { k: 'users', t: '用户管理', ic: 'user', g: '系统配置', c: Pages.Users, p: 'SYSTEM_ADMIN' },
-    { k: 'logins', t: '登录记录', ic: 'login', g: '系统配置', c: Pages.Logins },
+    { k: 'logins', t: '登录记录', ic: 'login', g: '系统配置', c: Pages.Logins, p: 'SYSTEM_ADMIN' },
     { k: 'operations', t: '操作记录', ic: 'log', g: '系统配置', c: Pages.Operations },
   ];
 

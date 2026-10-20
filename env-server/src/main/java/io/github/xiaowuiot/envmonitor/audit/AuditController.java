@@ -13,6 +13,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -24,7 +25,11 @@ import io.github.xiaowuiot.envmonitor.user.Permission;
 import io.github.xiaowuiot.envmonitor.user.User;
 
 /**
- * 查登录记录和操作记录。系统管理员能看所有人、按用户筛选；其他人只能看自己的。
+ * 查登录记录和操作记录。
+ * <ul>
+ *     <li>登录记录带着 IP、浏览器，只有系统管理员能看</li>
+ *     <li>操作记录：系统管理员能看所有人、按用户筛选；其他人只能看自己的，而且不返回 IP</li>
+ * </ul>
  */
 @RestController
 @RequestMapping("/api/audit")
@@ -62,9 +67,17 @@ public class AuditController {
                     o.getTargetId(), o.getMethod(), o.getPath(), o.getStatus(), o.isSuccess(), o.getMessage(),
                     o.getDurationMs(), o.getIp(), o.getClient(), o.getCreatedAt());
         }
+
+        /** 给非管理员看的：去掉 IP */
+        static OperationRow withoutIp(OperationLog o) {
+            OperationRow r = of(o);
+            return new OperationRow(r.id, r.userId, r.username, r.name, r.module, r.action, r.targetId, r.method, r.path,
+                    r.status, r.success, r.message, r.durationMs, null, r.client, r.createdAt);
+        }
     }
 
     @GetMapping("/logins")
+    @PreAuthorize("hasAuthority('PERM_SYSTEM_ADMIN')")
     public PageResult<LoginRow> logins(@RequestParam(name = "userId", required = false) Long userId,
                                        @RequestParam(name = "keyword", required = false) String keyword,
                                        @RequestParam(name = "action", required = false) LoginLog.Action action,
@@ -109,7 +122,8 @@ public class AuditController {
             }
             return cb.and(ps.toArray(Predicate[]::new));
         };
-        return PageResult.of(operations.findAll(spec, pageable(page, size)), OperationRow::of);
+        return PageResult.of(operations.findAll(spec, pageable(page, size)),
+                isAdmin() ? OperationRow::of : OperationRow::withoutIp);
     }
 
     @GetMapping("/modules")
@@ -122,6 +136,10 @@ public class AuditController {
     private Long scope(Long userId) {
         User me = current.get();
         return me.permissions().contains(Permission.SYSTEM_ADMIN) ? userId : me.getId();
+    }
+
+    private boolean isAdmin() {
+        return current.get().permissions().contains(Permission.SYSTEM_ADMIN);
     }
 
     private static <T> List<Predicate> common(jakarta.persistence.criteria.Root<T> root,

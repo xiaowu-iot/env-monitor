@@ -37,7 +37,7 @@
       </div>`;
   const pager = `<div class="pager"><el-pagination layout="total, prev, pager, next" :total="data.total" :page-size="20" :current-page="page+1" @current-change="p => { page = p-1; load(); }" /></div>`;
 
-  // ---------- 登录记录 ----------
+  // ---------- 登录记录（带 IP，只有系统管理员能看，菜单和接口都限制了） ----------
   const Logins = {
     setup() {
       const s = useAuditList('/audit/logins', { action: null });
@@ -82,7 +82,7 @@
         <el-table-column label="操作" min-width="150"><template #default="{row}">{{ row.action }}<span class="muted" v-if="row.targetId"> #{{ row.targetId }}</span></template></el-table-column>
         <el-table-column label="结果" min-width="160"><template #default="{row}"><el-tag size="small" :type="row.success ? 'success' : 'danger'">{{ row.success ? '成功' : '失败' }}</el-tag><span class="muted" v-if="!row.success && row.message" style="margin-left:6px">{{ row.message }}</span></template></el-table-column>
         <el-table-column prop="client" label="操作端" width="90" />
-        <el-table-column prop="ip" label="IP" width="140" />
+        <el-table-column v-if="admin" prop="ip" label="IP" width="140" />
       </el-table>
       ${pager}
       <el-dialog v-model="detail.show" title="操作详情" width="520px">
@@ -92,7 +92,7 @@
           <el-descriptions-item label="操作">{{ detail.r.module }} · {{ detail.r.action }}<template v-if="detail.r.targetId">（对象 ID {{ detail.r.targetId }}）</template></el-descriptions-item>
           <el-descriptions-item label="结果">{{ detail.r.success ? '成功' : '失败' }}<template v-if="detail.r.message">：{{ detail.r.message }}</template></el-descriptions-item>
           <el-descriptions-item label="接口">{{ detail.r.method }} {{ detail.r.path }}（HTTP {{ detail.r.status }}，{{ detail.r.durationMs }} ms）</el-descriptions-item>
-          <el-descriptions-item label="来源">{{ detail.r.client }} · {{ detail.r.ip }}</el-descriptions-item>
+          <el-descriptions-item label="来源">{{ detail.r.client }}<template v-if="admin && detail.r.ip"> · {{ detail.r.ip }}</template></el-descriptions-item>
         </el-descriptions>
       </el-dialog>
     </div>`,

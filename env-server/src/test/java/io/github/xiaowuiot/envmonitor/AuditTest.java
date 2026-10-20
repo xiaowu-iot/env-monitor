@@ -51,5 +51,10 @@ class AuditTest {
         long adminId = admin.get("/api/auth/me").body().path("user").path("id").asLong();
         JsonNode mine = chen.get("/api/audit/operations?userId=" + adminId).body().path("items");
         assertThat(mine.findValuesAsText("username")).containsOnly("chen");
+
+        // 登录记录（带 IP）只有系统管理员能看；非管理员看自己的操作记录也不带 IP
+        assertThat(chen.get("/api/audit/logins").status()).isEqualTo(403);
+        assertThat(mine.get(0).path("ip").isNull()).isTrue();
+        assertThat(ops.get(0).path("ip").asText()).isNotEmpty();
     }
 }
