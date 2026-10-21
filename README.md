@@ -28,6 +28,24 @@
 
 代码仓库：GitHub <https://github.com/xiaowu-iot/env-monitor> ，Gitee 镜像 <https://gitee.com/xiaowu-iot/env-monitor>
 
+## 界面截图
+
+截图来自完整版（和演示站一样）。开源版包含其中的实时数据、预警派单处理审核等基础功能，具体区别见下面的对照表。
+
+**数据大屏**：乡镇地图、站点光柱、预警动态、工单闭环、人车调度，讲解员「小绿」可以语音讲解
+
+![数据大屏](docs/screenshots/screen.jpg)
+
+| 运行概览 | 实时数据 |
+|---|---|
+| ![运行概览](docs/screenshots/dashboard.jpg) | ![实时数据](docs/screenshots/realtime.jpg) |
+| **预警列表** | **调度中心** |
+| ![预警列表](docs/screenshots/alarms.jpg) | ![调度中心](docs/screenshots/dispatch.jpg) |
+| **报表中心** | **传输有效率** |
+| ![报表中心](docs/screenshots/reports.jpg) | ![传输有效率](docs/screenshots/quality.jpg) |
+| **报文调试** | **手机端（处理人）** |
+| ![报文调试](docs/screenshots/packet-tool.jpg) | <img src="docs/screenshots/mobile.jpg" width="260" alt="手机端"> |
+
 ## 开源版和完整版
 
 这个仓库是开源基础版，拉下来就能跑通上面的完整流程。
