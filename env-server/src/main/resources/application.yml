@@ -1,0 +1,61 @@
+server:
+  port: 8070
+  servlet:
+    session:
+      timeout: 12h
+      cookie:
+        same-site: strict
+        http-only: true
+
+spring:
+  application:
+    name: env-monitor
+  datasource:
+    # 默认 H2 文件库，零安装
+    url: jdbc:h2:file:${env.data-dir:./data}/db
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    properties:
+      hibernate:
+        jdbc.time_zone: Asia/Shanghai
+  jackson:
+    time-zone: Asia/Shanghai
+    serialization:
+      write-dates-as-timestamps: false
+
+logging:
+  level:
+    root: info
+    org.hibernate.engine.jdbc.spi.SqlExceptionHelper: error
+
+env:
+  data-dir: ./data
+  hj212:
+    port: 9212
+    ack-data: true
+    raw-retention-days: 7
+  device:
+    offline-timeout-seconds: 300
+  dingtalk:
+    # 钉钉群机器人：群设置 → 机器人 → 自定义，安全设置选"加签"。
+    # 默认指向平台内置的模拟接口，没有真实群也能演示；接真实群时把下面两项换成自己的
+    webhook: http://127.0.0.1:${server.port}/mock/dingtalk/robot/send?access_token=demo
+    secret: SECdemo0000000000000000000000000000000000000000000000000000000000
+    mock-enabled: true
+  ai:
+    # mock：内置规则理解常用问法，不调用大模型；openai：调用 OpenAI 兼容接口，见 README
+    provider: mock
+  init:
+    demo-data: true
+    demo-password: demo123
+  demo:
+    # 公开演示站打开：自带演示数据普通账号不能改删，不能改密码、管账号；每天凌晨备份数据库到 data/backup
+    protect: false
+  simulator:
+    auto-start: false
+    rtd-interval-seconds: 10
+    minute-interval-seconds: 60
