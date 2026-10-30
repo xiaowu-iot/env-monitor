@@ -24,8 +24,6 @@
 | `ops` | 吴工，运维 | 站点、设备、因子管理，缺数补采，虚拟设备 |
 | `fleet` | 郑队长，车队调度 | 人员、车辆、派车、自动派车规则 |
 
-演示站的自带数据受保护：可以新建站点、设备、车辆等自己的数据随意改删，自带的演示数据不能修改和删除，也不能改密码。
-
 代码仓库：GitHub <https://github.com/xiaowu-iot/env-monitor> ，Gitee 镜像 <https://gitee.com/xiaowu-iot/env-monitor>
 
 ## 界面截图
